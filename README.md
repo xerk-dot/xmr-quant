@@ -9,6 +9,7 @@ A comprehensive cryptocurrency trading bot specifically designed for Monero (XMR
 - Real-time data via WebSocket streams
 - **BTC-XMR correlation lag strategy** (primary alpha source - 40% weight)
 - **News sentiment monitoring** (Twitter + LLM classification - 10% weight)
+- **Darknet adoption tracking** (BTC vs XMR usage - 5% weight, optional)
 - 20+ advanced technical indicators
 - Automated market regime detection (trend, volatility, etc.)
 - Machine learning signals (XGBoost, auto-retraining)
@@ -273,7 +274,43 @@ Automated notifications for:
 - **Trend Following** (12.5%): EMA crossovers with ADX confirmation
 - **Mean Reversion** (12.5%): RSI + Bollinger Bands in ranging markets
 
-### 4. News Sentiment Strategy - 10% weight
+### 4. Darknet Adoption Strategy - 5% weight (Optional)
+
+**Tracks cryptocurrency usage on darknet marketplaces as privacy demand indicator**
+
+**How it Works**:
+- Connects to Tor network
+- Scrapes public statistics from marketplace stats pages
+- Extracts BTC vs XMR payment method percentages
+- Aggregates across top 10 marketplaces
+- Generates signals based on adoption rates
+
+**Signal Logic**:
+- XMR adoption >60%: Bullish (high privacy demand)
+- XMR adoption <35%: Bearish (BTC dominance)
+- Increasing XMR trend: Additional bullish signal
+
+**Key Parameters**:
+```python
+{
+    'bullish_threshold': 60,        # XMR% for bullish signal
+    'bearish_threshold': 35,        # XMR% for bearish signal
+    'min_confidence': 0.5,          # Minimum data quality
+    'update_interval_hours': 24     # Daily updates
+}
+```
+
+**Setup** (Optional):
+1. Install Tor: `brew install tor` (macOS) or `apt install tor` (Linux)
+2. Start Tor: `tor`
+3. Configure marketplace .onion addresses in `src/darknet/marketplace_scraper.py`
+4. Enable in `.env`: `DARKNET_MONITORING_ENABLED=true`
+
+**Legal Note**: Scrapes only publicly available statistics pages for market research, similar to analyzing exchange volumes. No personal data or transaction details collected.
+
+**Documentation**: See [DARKNET_QUICK_START.md](docs/DARKNET_QUICK_START.md)
+
+### 5. News Sentiment Strategy - 10% weight
 
 **Real-time news monitoring and LLM-based classification**
 
