@@ -1,298 +1,313 @@
-# 🪙 Monero (XMR) Swing Trading Bot
+# Monero Trading Bot with Darknet Market Sentiment Analysis
 
-A modular cryptocurrency trading bot designed for Monero swing trading, featuring BTC-XMR correlation analysis, ML models, and optional news sentiment monitoring.
+An algorithmic trading system for Monero (XMR) that combines traditional technical analysis with novel darknet marketplace sentiment monitoring. The core thesis: Monero adoption on darknet markets is a leading indicator of genuine privacy demand and price action.
 
-## 🚀 Quick Start
+## Overview
+
+This is a multi-strategy ensemble trading bot designed to exploit several inefficiencies in the Monero market:
+
+1. **Darknet Market Sentiment** - Primary signal source. Monitors cryptocurrency adoption trends across darknet marketplaces via Tor. Rising XMR acceptance rates and transaction volume on DNMs indicates increasing privacy demand before it reflects in spot price.
+
+2. **BTC-XMR Correlation Lag** - Secondary signal. XMR typically lags BTC price movements by 6-24 hours due to lower liquidity and fragmented exchange availability. When BTC moves >3%, XMR follows predictably.
+
+3. **News Sentiment Analysis** - LLM-based classification of crypto news from Twitter, focusing on privacy/regulation narratives that affect XMR price.
+
+4. **Traditional Technical Analysis** - Trend following (EMA), mean reversion (RSI/BB), and XGBoost-based market regime detection.
+
+## Repository Structure
+
+```
+src/
+├── core/                    # Data ingestion, feature engineering, exchange connectivity
+│   ├── bot.py              # Main orchestrator
+│   ├── exchange_client.py  # CCXT wrapper for Binance/Kraken
+│   ├── data_aggregator.py  # OHLCV aggregation
+│   └── feature_engineering.py
+│
+├── strategies/
+│   ├── experimental/darknet/
+│   │   ├── strategy.py            # Darknet sentiment trading strategy
+│   │   ├── marketplace_scraper.py # Tor-based .onion scraper
+│   │   └── tor_client.py          # Tor SOCKS5 client
+│   │
+│   ├── news/
+│   │   ├── strategy.py            # News sentiment strategy
+│   │   ├── news_aggregator.py     # Twitter API v2 client
+│   │   └── news_classifier.py     # OpenAI/Anthropic LLM classifier
+│   │
+│   ├── core/
+│   │   ├── btc_correlation.py     # BTC-XMR lag exploitation
+│   │   └── trend_following.py     # EMA/RSI/BB strategies
+│   │
+│   ├── ml/
+│   │   ├── xgboost_strategy.py    # Market regime detection
+│   │   ├── models.py              # Volatility, signal filter, exit models
+│   │   └── manager.py             # ML model lifecycle
+│   │
+│   ├── aggregator.py        # Weighted voting across strategies
+│   └── base.py              # Base strategy interface
+│
+├── risk/
+│   ├── risk_manager.py      # Position sizing, exposure limits
+│   ├── position_sizing.py   # Kelly, fixed fractional, volatility-based
+│   └── stop_loss.py         # ATR stops, trailing stops, S/R-based
+│
+├── execution/
+│   └── order_manager.py     # Order placement, fills, cancellations
+│
+├── monitoring/
+│   ├── prometheus_metrics.py
+│   └── telegram_alerts.py
+│
+└── database/
+    └── models.py            # PostgreSQL schema (trades, signals, market data)
+```
+
+## How It Works
+
+### Main Trading Loop
+The bot runs on a configurable interval (default: every 2 hours):
+
+1. Fetch OHLCV data from exchanges (Binance, Kraken)
+2. Calculate technical indicators (50+ features via `pandas_ta`)
+3. Run all enabled strategies in parallel:
+   - Darknet strategy checks marketplace scrape data from last 24h
+   - BTC correlation checks BTC price changes in last 6-24h window
+   - News strategy aggregates LLM-classified tweets from last 4h
+   - ML models predict market regime and filter signals
+   - Technical strategies evaluate current price vs EMAs/RSI/BB
+4. Aggregate signals via weighted voting (configurable weights)
+5. Apply risk management (position sizing, exposure checks)
+6. Execute orders if signal strength > threshold
+7. Update Prometheus metrics, send Telegram alerts
+
+### Darknet Monitoring Strategy
+
+**Implementation**: `src/strategies/experimental/darknet/`
+
+The darknet strategy operates independently on a longer interval (every 12-24 hours):
+
+1. Connect to Tor network via SOCKS5 proxy
+2. Scrape marketplace statistics from `.onion` addresses:
+   - Number of vendors accepting XMR vs BTC
+   - Proportion of listings with XMR as payment option
+   - Total transaction volume indicators (when available)
+3. Calculate adoption metrics:
+   - XMR acceptance rate across markets
+   - Week-over-week change in XMR listings
+   - Vendor migration patterns (BTC → XMR)
+4. Generate trading signals:
+   - `BUY` if XMR adoption increasing significantly (>10% WoW)
+   - `SELL` if XMR adoption declining (<-5% WoW)
+   - Signal strength proportional to adoption velocity
+
+**Current State**:
+- Code is functional but uses placeholder `.onion` addresses
+- Requires manual sourcing of real darknet marketplace addresses
+- Scraping logic works but needs marketplace-specific selectors
+- See `src/strategies/experimental/darknet/marketplace_scraper.py` for implementation details
+
+**Legal Notice**: This feature is for research purposes only. Accessing darknet marketplaces may be illegal in your jurisdiction. User assumes all legal risk.
+
+## Strategy Weights
+
+Default configuration (adjustable in config):
+
+```python
+STRATEGY_WEIGHTS = {
+    'darknet_adoption': 0.30,      # Primary alpha source
+    'btc_correlation': 0.25,       # Secondary alpha
+    'news_sentiment': 0.20,        # Narrative detection
+    'xgboost_ml': 0.15,           # Regime filtering
+    'trend_following': 0.05,       # Traditional TA
+    'mean_reversion': 0.05         # Traditional TA
+}
+```
+
+Signals are aggregated via weighted sum. Trade execution requires aggregate signal strength > 0.6.
+
+## Requirements
+
+### Minimum Setup
+- Python 3.10+
+- PostgreSQL 14+ (trade history, signals)
+- Redis 7+ (caching, task queue)
+- InfluxDB 2.0+ (time-series market data)
+- Exchange API keys (Binance OR Kraken)
+- Telegram bot token (alerts)
+
+### Optional (Darknet Monitoring)
+- Tor installed and running (`brew install tor` on macOS)
+- Working `.onion` addresses for active darknet markets
+- Basic understanding of Tor network operation
+
+### Optional (News Monitoring)
+- Twitter API v2 access ($100/month for Basic tier)
+- OpenAI API key ($10-20/month) OR Anthropic API key
+
+### Optional (ML Models)
+- 16GB+ RAM for XGBoost training
+- 1-2 hours for initial model training
+- Historical data (downloads automatically on first run)
+
+## Installation
 
 ```bash
-# 1. Setup
+# 1. Clone repository
+git clone <repo_url>
+cd privacy_coin_swing_trading
+
+# 2. Install dependencies
+pip install -r requirements.txt
+
+# 3. Setup configuration
 cp .env.example .env
-nano .env  # Add your API keys
+# Edit .env with your API keys
 
-# 2. Run
-docker-compose up -d
-
-# 3. Monitor
-# Grafana: http://localhost:3000
-# Telegram: Check for alerts
-```
-
-**⚠️ Start with paper trading!** See [Getting Started Guide](docs/01-GETTING-STARTED.md)
-
----
-
-## 📚 Documentation
-
-**Read in this order:**
-
-1. **[Getting Started](docs/01-GETTING-STARTED.md)** - Quick setup checklist
-2. **[Setup Guide](docs/02-SETUP.md)** - Detailed API instructions  
-3. **[Architecture](docs/03-ARCHITECTURE.md)** - How the bot works
-4. **[Status](docs/06-STATUS.md)** - Current state and requirements
-
----
-
-## 🎯 Core Strategy
-
-**BTC-XMR Correlation Lag (40% weight - Primary Edge)**
-
-Monero typically lags Bitcoin price movements by 6-24 hours due to:
-- Lower liquidity ($50-150M vs BTC's $20-40B daily volume)
-- Retail-heavy market structure
-- Fragmented exchange availability
-
-When BTC moves >3%, the bot anticipates XMR will follow with a measurable delay.
-
-**Status**: Unproven. Requires real-world validation through paper trading.
-
----
-
-## 📊 Strategy Breakdown
-
-### ✅ Core Strategies (REQUIRED - Free)
-- **BTC Correlation** (40%) - Exploits BTC-XMR lag
-- **Trend Following** (12.5%) - EMA crossovers + ADX
-- **Mean Reversion** (12.5%) - RSI + Bollinger Bands
-
-### ⚙️ ML Strategies (OPTIONAL - Free but slow first run)
-- **XGBoost** (25%) - Regime detection and signal filtering
-- Auto-trains on startup (1-2 hours)
-
-### 💰 News Strategies (OPTIONAL - $110/month)
-- **News Sentiment** (10%) - Twitter + LLM classification
-- Requires Twitter API ($100/mo) + OpenAI ($10-20/mo)
-
-### 🧪 Experimental (OPTIONAL - Unreliable)
-- **Darknet Adoption** (5%) - Cryptocurrency usage on darknet markets
-- Requires Tor + manual .onion address maintenance
-- **Not recommended** unless experienced
-
----
-
-## 🛠️ Requirements
-
-### Minimum (Core Strategies Only)
-- Python 3.9+
-- Docker + Docker Compose (or PostgreSQL, Redis, InfluxDB)
-- Exchange API (Binance OR Kraken)
-- Telegram bot (for alerts)
-
-### Optional
-- Twitter API + OpenAI/Anthropic (for news monitoring)
-- Tor (for darknet monitoring - not recommended)
-
----
-
-## 💰 Cost Breakdown
-
-### Free Tier (Minimum Setup)
-- **Server**: $0 (local) or $5-20/mo (VPS)
-- **Trading**: $0 (paper trading)
-- **Total**: $5-20/month
-
-### Full Setup (All Features)
-- **Twitter API**: $100/month
-- **OpenAI API**: $10-20/month  
-- **Server**: $5-20/month
-- **Total**: $115-140/month
-
-**Recommendation**: Start with free tier, validate BTC correlation works, then add features.
-
----
-
-## 📁 Project Structure
-
-```
-privacy_coin_swing_trading/
-├── docs/                          # All documentation
-│   ├── 01-GETTING-STARTED.md
-│   ├── 02-SETUP.md
-│   └── 03-ARCHITECTURE.md
-│
-├── src/
-│   ├── core/                      # REQUIRED: Data, features, exchange
-│   ├── strategies/
-│   │   ├── core/                  # REQUIRED: BTC correlation, trend, mean reversion
-│   │   ├── ml/                    # OPTIONAL: XGBoost models
-│   │   ├── news/                  # OPTIONAL: Twitter + LLM ($$$)
-│   │   └── experimental/darknet/  # OPTIONAL: Darknet monitoring (unreliable)
-│   ├── risk/                      # REQUIRED: Position sizing, stops
-│   ├── execution/                 # REQUIRED: Order management
-│   ├── monitoring/                # REQUIRED: Metrics, alerts
-│   └── database/                  # REQUIRED: Data storage
-│
-├── scripts/                       # Utility scripts
-│   ├── setup_database.py
-│   └── test_connection.py
-│
-├── tests/                         # Test suite
-├── monitoring/                    # Grafana + Prometheus
-└── .env.example                   # Configuration template
-```
-
----
-
-## ⚡ Quick Commands
-
-```bash
-# Start bot (paper trading)
-docker-compose up -d
-
-# View logs
-docker-compose logs -f trading-bot
-
-# Stop bot
-docker-compose down
-
-# Setup database
+# 4. Initialize database
 python scripts/setup_database.py
 
-# Test connections
-python scripts/test_connection.py
+# 5. Start infrastructure (or use Docker)
+docker-compose up -d postgres redis influxdb grafana
+
+# 6. Run bot in paper trading mode
+python run_bot.py --mode paper --capital 10000
 ```
 
----
+## Configuration
 
-## 📈 Features
-
-### Risk Management
-- Multiple position sizing methods (Kelly, fixed fractional, volatility-adjusted)
-- ATR-based stop losses
-- Support/resistance-based targets
-- Portfolio exposure limits (max 30%)
-- Daily loss limits (5%)
-
-### Monitoring
-- **Grafana Dashboards**: Real-time metrics at http://localhost:3000
-- **Prometheus**: Metrics endpoint at http://localhost:9090
-- **Telegram Alerts**: Trades, signals, errors, daily summaries
-
-### Data Sources
-- **Exchanges**: Binance, Kraken (via CCXT)
-- **Optional**: Twitter (news), Tor (darknet)
-
----
-
-## ⚠️ Warnings
-
-### 🔴 This Bot Has NOT Been Validated
-- **Zero real-world trades** have been executed
-- **BTC correlation edge is unproven** - it's a hypothesis
-- **Backtest uses random data** - not real historical data
-- **No test coverage** - bugs likely exist
-
-### 🔴 Financial Risk
-- Cryptocurrency trading involves substantial risk
-- Past performance does not guarantee future results
-- **Never trade with money you cannot afford to lose**
-- **Always start with paper trading for 2-4 weeks minimum**
-
-### 🔴 Technical Risk
-- Code is untested in production
-- Exchange APIs can fail
-- Network issues can cause missed trades
-- Database failures possible
-
----
-
-## 🧪 Recommended Path
-
-### Week 1: Setup & Validation
-1. Get minimum API keys (exchange + Telegram)
-2. Create `.env` file
-3. Start in paper trading mode
-4. Verify connections and signal generation
-
-### Weeks 2-4: Paper Trading
-1. Monitor for BTC correlation signals
-2. Track hypothetical P&L in Grafana
-3. Analyze win rate and strategy performance
-4. **Do NOT use real money yet**
-
-### Month 2: Decision Point
-**IF paper trading shows consistent profit:**
-- Start with $500 live capital
-- Monitor closely
-- Scale gradually if successful
-
-**IF paper trading loses money:**
-- Analyze why (check logs, correlation data)
-- Tune parameters or abandon
-- **Do NOT risk real money**
-
----
-
-## 🔧 Configuration
-
-**Minimum `.env` required:**
+Key environment variables in `.env`:
 
 ```bash
-# Exchange (pick ONE)
-BINANCE_API_KEY=your_key
-BINANCE_SECRET=your_secret
+# Exchange (required)
+EXCHANGE=binance
+BINANCE_API_KEY=xxx
+BINANCE_SECRET=xxx
 
-# Telegram (for alerts)
-TELEGRAM_BOT_TOKEN=your_token
-TELEGRAM_CHAT_ID=your_id
+# Database (required)
+POSTGRES_URL=postgresql://user:pass@localhost:5432/trading
+REDIS_URL=redis://localhost:6379
+INFLUXDB_URL=http://localhost:8086
+INFLUXDB_TOKEN=xxx
 
-# Disable expensive features
-NEWS_MONITORING_ENABLED=false
-DARKNET_MONITORING_ENABLED=false
+# Telegram (required for alerts)
+TELEGRAM_BOT_TOKEN=xxx
+TELEGRAM_CHAT_ID=xxx
+
+# Strategy Enablement
+DARKNET_MONITORING_ENABLED=true   # Enable darknet sentiment
+NEWS_MONITORING_ENABLED=false     # Requires Twitter API ($$$)
+ML_ENABLED=true                   # Enable XGBoost models
+
+# Darknet Configuration
+TOR_SOCKS_HOST=localhost
+TOR_SOCKS_PORT=9050
+DARKNET_SCRAPE_INTERVAL=43200     # 12 hours
+
+# Risk Management
+MAX_POSITION_SIZE=0.30            # Max 30% of portfolio per position
+DAILY_LOSS_LIMIT=0.05            # Stop trading if down 5% in a day
+POSITION_SIZING_METHOD=kelly      # kelly, fixed, volatility
 ```
 
-See [Setup Guide](docs/02-SETUP.md) for detailed API instructions.
+## Running the Bot
 
----
+```bash
+# Paper trading (recommended for testing)
+python run_bot.py --mode paper --capital 10000
 
-## 📖 Learn More
+# Live trading (USE WITH CAUTION)
+python run_bot.py --mode live --capital 5000
 
-- **[Getting Started](docs/01-GETTING-STARTED.md)** - Setup checklist
-- **[Setup Guide](docs/02-SETUP.md)** - API key acquisition
-- **[Architecture](docs/03-ARCHITECTURE.md)** - Technical deep-dive
-- **[Status Report](docs/06-STATUS.md)** - Current state, costs, risks
+# Backtest (uses historical data)
+python run_bot.py --mode backtest
+```
 
----
+## Monitoring
 
-## 🆘 Support
+- **Grafana**: http://localhost:3000 (default credentials: admin/admin)
+  - Real-time P&L
+  - Strategy performance breakdown
+  - Signal frequency and strength
+  - Risk metrics (exposure, drawdown)
 
-- **Issues**: GitHub Issues tab
-- **Logs**: `docker-compose logs trading-bot`
-- **Documentation**: See `docs/` directory
+- **Prometheus**: http://localhost:9090
+  - Raw metrics endpoint
 
----
+- **Telegram**: Receives alerts for:
+  - Trade executions
+  - Signal generations
+  - Error conditions
+  - Daily performance summary
 
-## 📄 License
+## Testing
 
-MIT License - See LICENSE file
+```bash
+# Run all tests
+pytest
 
----
+# Test specific strategy
+pytest tests/test_darknet_monitoring.py
 
-## ⚖️ Disclaimer
+# Test with coverage
+pytest --cov=src --cov-report=html
+```
 
-**This software is for educational and research purposes only.**
+## Development
 
-- Not financial advice
-- No guarantee of profits
-- Substantial risk of loss
-- Trade at your own risk
-- Developers assume no liability for financial losses
+```bash
+# Install pre-commit hooks
+pre-commit install
 
-**Start with paper trading. Never invest more than you can afford to lose.**
+# Run linting
+ruff check src/
 
----
+# Run type checking
+mypy src/
 
-## 🚀 Status
+# Format code
+ruff format src/
+```
 
-- **Architecture**: ✅ Complete
-- **Core Strategies**: ✅ Implemented
-- **ML Models**: ⚠️ Untrained (auto-trains on startup)
-- **News Monitoring**: ⚠️ Requires paid APIs
-- **Darknet**: ⚠️ Experimental (fake addresses)
-- **Validation**: ❌ Not yet tested with real trades
-- **Production Ready**: ❌ Paper trading recommended
+## Current Limitations
 
-**Bottom Line**: Well-architected but unproven. Worth testing with paper trading, but treat as experimental.
+1. **Darknet Strategy**:
+   - Uses placeholder `.onion` addresses (you must source real ones)
+   - Scraping selectors need marketplace-specific tuning
+   - No automated address discovery (must be updated manually)
+   - Legal/ethical considerations for accessing DNMs
 
----
+2. **ML Models**:
+   - Not pre-trained (trains on first run, takes 1-2 hours)
+   - Requires significant historical data (downloads automatically)
+   - High memory usage during training (16GB+ recommended)
 
-**Ready to start?** → [Getting Started Guide](docs/01-GETTING-STARTED.md)
+3. **News Strategy**:
+   - Requires paid Twitter API ($100/month minimum)
+   - LLM API costs vary with usage ($10-50/month typical)
+
+4. **General**:
+   - No live testing yet - all strategies are theoretical
+   - Backtest uses limited historical data
+   - Risk management not validated in production
+   - No automated capital allocation between strategies
+
+## Documentation
+
+- `docs/01-GETTING-STARTED.md` - Quick setup checklist
+- `docs/02-SETUP.md` - Detailed API configuration
+- `docs/03-ARCHITECTURE.md` - System architecture and data flows
+- `docs/04-BTC-CORRELATION-STRATEGY.md` - Deep-dive on BTC-XMR correlation
+- `docs/DARKNET_MONITORING_GUIDE.md` - Darknet strategy implementation
+- `docs/NEWS_MONITORING_GUIDE.md` - News sentiment setup
+- `docs/06-STATUS.md` - Current project status and roadmap
+
+## Disclaimer
+
+This software is provided for educational and research purposes only. Cryptocurrency trading involves substantial risk of loss. Accessing darknet marketplaces may be illegal in your jurisdiction. The authors assume no liability for financial losses or legal consequences resulting from use of this software.
+
+**Do not trade with money you cannot afford to lose. Always start with paper trading.**
+
+## License
+
+MIT License - See LICENSE file for details.
