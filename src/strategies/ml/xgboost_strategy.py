@@ -276,9 +276,12 @@ class XGBoostTradingStrategy(BaseStrategy):
         # Check if retrain is needed
         if self.should_retrain():
             logger.info("Retraining regime detection model...")
+            logger.info("⏳ This may take 1-2 hours on first run...")
             train_result = self.train_model(df)
             if not train_result.get('success', False):
-                logger.warning("Model retraining failed")
+                logger.warning(f"Model retraining failed: {train_result.get('reason', 'unknown')}")
+                logger.warning("ML signals will be unavailable until model is trained")
+                return None
 
         # Get regime prediction
         prediction_result = self.predict_regime(df)

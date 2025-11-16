@@ -81,8 +81,14 @@ class DarknetAdoptionStrategy(BaseStrategy):
         try:
             logger.info("Scraping darknet marketplaces for adoption data...")
             
-            # Scrape top 10 marketplaces
-            results = self.marketplace_scraper.scrape_all_marketplaces(limit=10)
+            # Scrape top 10 marketplaces (runs in thread pool to avoid blocking)
+            import asyncio
+            loop = asyncio.get_event_loop()
+            results = await loop.run_in_executor(
+                None, 
+                self.marketplace_scraper.scrape_all_marketplaces,
+                10
+            )
             
             if not results:
                 logger.warning("No marketplace data collected")

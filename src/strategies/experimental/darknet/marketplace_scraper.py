@@ -36,21 +36,48 @@ class MarketplaceScraper:
     Focus: Payment method preferences (BTC vs XMR) as market sentiment indicator.
     """
     
-    # Known marketplace onion addresses (these change frequently)
-    # NOTE: These are EXAMPLE placeholders. Real onions must be sourced from
-    # darknet directories like dark.fail or similar verification services.
+    # =========================================================================
+    # ⚠️ WARNING: PLACEHOLDER ADDRESSES - WILL NOT WORK
+    # =========================================================================
+    # These are FAKE example addresses. To use this feature you MUST:
+    # 
+    # 1. Visit darknet marketplace directories to get current addresses:
+    #    - dark.fail (clearnet site that lists current onion addresses)
+    #    - dread forum (darknet Reddit-style forum with verified links)
+    #    - Recon (darknet directory)
+    # 
+    # 2. Verify addresses are legitimate (scam sites are common)
+    # 
+    # 3. Update this dictionary with REAL .onion addresses
+    # 
+    # 4. Set 'enabled': True for marketplaces you want to scrape
+    # 
+    # 5. Understand that:
+    #    - .onion addresses change frequently (weeks/months)
+    #    - Sites go offline regularly
+    #    - HTML structures vary between marketplaces
+    #    - This may require frequent maintenance
+    # 
+    # LEGAL: Only scrape publicly available statistics pages, not user data.
+    # =========================================================================
+    
     MARKETPLACES = {
         'Example Market 1': {
-            'onion': 'examplemarket1xxxxxxxxxxxxxxxxxxxxxxxxx.onion',
+            'onion': 'examplemarket1xxxxxxxxxxxxxxxxxxxxxxxxx.onion',  # FAKE - Replace with real address
             'stats_path': '/stats',
-            'enabled': False  # Disabled by default for safety
+            'enabled': False  # Must enable after adding real address
         },
         'Example Market 2': {
-            'onion': 'examplemarket2xxxxxxxxxxxxxxxxxxxxxxxxx.onion',
+            'onion': 'examplemarket2xxxxxxxxxxxxxxxxxxxxxxxxx.onion',  # FAKE - Replace with real address
             'stats_path': '/statistics',
             'enabled': False
         },
-        # Add real marketplaces here with valid onion addresses
+        # Add more marketplaces here with REAL addresses:
+        # 'Marketplace Name': {
+        #     'onion': 'real32characteraddresshere.onion',
+        #     'stats_path': '/statistics',  # Path to public stats page
+        #     'enabled': True  # Enable once verified
+        # },
     }
     
     def __init__(self, tor_client: TorClient):

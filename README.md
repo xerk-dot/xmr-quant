@@ -1,561 +1,298 @@
-# 🪙 Monero (XMR) Swing Tradin' Bot
+# 🪙 Monero (XMR) Swing Trading Bot
 
-A comprehensive cryptocurrency trading bot specifically designed for Monero (XMR) swing trading, featuring machine learning models, advanced risk management, and complete monitoring infrastructure.
+A modular cryptocurrency trading bot designed for Monero swing trading, featuring BTC-XMR correlation analysis, ML models, and optional news sentiment monitoring.
 
-## 🚀 Features, briefly
+## 🚀 Quick Start
 
-### Core Functionality
-- Multi-exchange support (Binance, Kraken)
-- Real-time data via WebSocket streams
-- **BTC-XMR correlation lag strategy** (primary alpha source - 40% weight)
-- **News sentiment monitoring** (Twitter + LLM classification - 10% weight)
-- **Darknet adoption tracking** (BTC vs XMR usage - 5% weight, optional)
-- 20+ advanced technical indicators
-- Automated market regime detection (trend, volatility, etc.)
-- Machine learning signals (XGBoost, auto-retraining)
-- Combines multiple strategies for signal generation
-
-### Risk Management
-- Multiple position sizing modes (Kelly, fixed fractional, volatility-adjusted)
-- Smart stop loss & take profit (ATR, S/R, trailing)
-- Limits portfolio and symbol-specific exposure
-- Drawdown and consecutive loss protection features
-
-### Monitoring & Alerts
-- Grafana dashboards for live metrics
-- Prometheus monitoring
-- Telegram alerts (trades, signals, errors, system events)
-- Tracks everything: trades, P&L, system health
-
-### Infrastructure
-- Runs fully in Docker (easy deployment)
-- PostgreSQL (trade & signal data)
-- Redis (caching / queue)
-- InfluxDB (historical price/time-series)
-- Nginx reverse proxy for API/services
-
-
-## 📊 Architecture
-
-**The system has TWO concurrent loops feeding into one decision engine:**
-
-```
-┌────────────────────────────────────────────────────────────────┐
-│                     Trading Bot System                          │
-├────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  🔄 MAIN LOOP (12 hours)           🔄 NEWS LOOP (30 mins)     │
-│  ┌──────────────────────┐          ┌──────────────────────┐   │
-│  │ Exchange APIs        │          │ Twitter API          │   │
-│  │ BTC/XMR prices      │          │ + LLM Classification │   │
-│  │ Technical indicators │          │ Sentiment analysis   │   │
-│  └─────────┬────────────┘          └──────────┬───────────┘   │
-│            │                                   │               │
-│            └──────────┬────────────────────────┘               │
-│                       ▼                                        │
-│            ┌──────────────────────┐                           │
-│            │  Signal Aggregator   │                           │
-│            │  (5 strategies vote) │                           │
-│            └─────────┬────────────┘                           │
-│                      ▼                                        │
-│            ┌──────────────────────┐                           │
-│            │   Risk Manager       │                           │
-│            └─────────┬────────────┘                           │
-│                      ▼                                        │
-│            ┌──────────────────────┐                           │
-│            │  Order Execution     │                           │
-│            └──────────────────────┘                           │
-│                                                                 │
-└────────────────────────────────────────────────────────────────┘
-```
-
-**📚 Detailed Documentation:**
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Complete technical architecture and data flows
-- **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** - Simplified guide and visual diagrams
-- **[BTC_CORRELATION_FLOW.md](docs/BTC_CORRELATION_FLOW.md)** - BTC correlation strategy details
-
-## 🛠️ Quick Start
-
-### 1. Clone Repository
 ```bash
-git clone <repository-url>
-cd privacy_coin_swing_trading
-```
-
-### 2. Environment Setup
-```bash
-# Copy environment template
+# 1. Setup
 cp .env.example .env
+nano .env  # Add your API keys
 
-# Edit with your API keys and configuration
-nano .env
-```
-
-### 3. Docker Deployment
-```bash
-# Start all services
+# 2. Run
 docker-compose up -d
 
-# Check status
-docker-compose ps
-
-# View logs
-docker-compose logs -f trading-bot
+# 3. Monitor
+# Grafana: http://localhost:3000
+# Telegram: Check for alerts
 ```
 
-### 4. Access Dashboards
-- **Grafana**: http://localhost:3000 (admin/grafana_admin_123)
-- **Prometheus**: http://localhost:9090
-- **Bot Metrics**: http://localhost:8000/metrics
-
-## 📱 Telegram Setup
-
-1. Create a Telegram bot:
-   - Message @BotFather on Telegram
-   - Run `/newbot` and follow instructions
-   - Copy the bot token
-
-2. Get your chat ID:
-   - Message your bot
-   - Visit `https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates`
-   - Copy the chat ID from the response
-
-3. Add to `.env`:
-```env
-TELEGRAM_BOT_TOKEN=your_bot_token_here
-TELEGRAM_CHAT_ID=your_chat_id_here
-```
-
-## 🔧 Configuration
-
-### Trading Parameters (`.env`)
-```env
-# Risk Management
-MAX_POSITION_SIZE=0.02              # 2% per trade
-MAX_PORTFOLIO_EXPOSURE=0.3          # 30% total exposure
-MIN_RISK_REWARD_RATIO=1.5           # Minimum R:R ratio
-DEFAULT_STOP_LOSS_ATR_MULTIPLIER=2.5
-
-# Exchange API Keys
-BINANCE_API_KEY=your_api_key
-BINANCE_SECRET=your_secret
-KRAKEN_API_KEY=your_api_key
-KRAKEN_SECRET=your_secret
-
-# News Monitoring (Optional but Recommended)
-TWITTER_BEARER_TOKEN=your_twitter_bearer_token
-NEWS_LLM_PROVIDER=openai            # 'openai' or 'anthropic'
-OPENAI_API_KEY=your_openai_key      # If using OpenAI
-ANTHROPIC_API_KEY=your_anthropic_key # If using Anthropic
-NEWS_MONITORING_ENABLED=true
-NEWS_CHECK_INTERVAL_MINUTES=30      # Check news every 30 minutes
-NEWS_STRATEGY_WEIGHT=0.10           # 10% weight in signal aggregation
-```
-
-### Strategy Configuration
-The bot uses a weighted ensemble of strategies (configured in `main.py`):
-```python
-# Default weights (optimized for alpha generation)
-{
-    'BTCCorrelation': 0.40,  # BTC-XMR lag (primary edge)
-    'NewsSentiment': 0.10,   # News monitoring & LLM classification
-    'TrendFollowing': 0.125, # Rule-based trend
-    'MeanReversion': 0.125,  # Rule-based mean reversion
-    'XGBoostML': 0.25        # ML confirmation filter
-}
-```
-
-**BTC Correlation Strategy**: Exploits the 6-24h lag between BTC and XMR movements. When BTC makes a significant move (>3%), XMR typically follows with a predictable delay.
-
-**News Sentiment Strategy**: Monitors Twitter for cryptocurrency, privacy, economic, and instability-related news. Uses LLMs (GPT-4 or Claude) to classify news impact and generate sentiment signals.
-
-## 🎯 Usage
-
-### Paper Trading (Recommended for testing)
-```bash
-python run_bot.py --mode paper --capital 10000
-```
-
-### Live Trading (Real money)
-```bash
-python run_bot.py --mode live --capital 10000
-```
-
-### Backtesting
-```bash
-python run_bot.py --mode backtest
-```
-
-### Test BTC Correlation Strategy
-```bash
-# Run correlation analysis and validation
-python test_btc_correlation.py
-```
-
-This test will:
-- Fetch 30 days of BTC and XMR historical data
-- Calculate correlation coefficient and optimal lag
-- Detect current BTC movements
-- Generate trading signals
-- Show historical performance metrics
-
-### Docker Deployment
-```bash
-# Paper trading
-docker-compose up -d
-
-# Live trading (modify docker-compose.yml)
-# Change command: ["python", "run_bot.py", "--mode", "live", "--capital", "10000"]
-docker-compose up -d
-```
-
-## 📊 Monitoring
-
-### Grafana Dashboards
-The system includes pre-configured dashboards showing:
-- Portfolio value and P&L
-- Trade statistics and win rate
-- Risk metrics and drawdown
-- Signal generation rates
-- System performance metrics
-
-### Telegram Alerts
-Automated notifications for:
-- 🎯 Position entries/exits
-- 📊 Signal generation
-- ⚠️ Risk management alerts
-- 🚨 System errors
-- 📈 Daily performance summaries
-
-### Key Metrics
-- **Portfolio Value**: Current capital
-- **Drawdown**: Peak-to-trough decline
-- **Win Rate**: Percentage of profitable trades
-- **Sharpe Ratio**: Risk-adjusted returns
-- **Profit Factor**: Gross profit / gross loss
-
-## 🔍 Strategy Details
-
-### 1. BTC-XMR Correlation Lag (40% weight - Primary Alpha Source)
-
-**The Edge**: Monero typically lags Bitcoin movements by 6-24 hours due to lower liquidity and retail-heavy market structure.
-
-**How it Works**:
-- Monitors BTC/USDT for significant moves (>3% in 4-12h window)
-- Calculates real-time correlation and optimal lag
-- Generates XMR signals based on expected follow-through
-- Signal strength decays exponentially (6h half-life)
-- Volume confirmation for higher confidence
-
-**Key Parameters**:
-```python
-{
-    'btc_move_threshold': 0.03,    # 3% BTC move triggers signal
-    'expected_lag_hours': 8,       # Average lag time
-    'min_correlation': 0.6,        # Minimum correlation required
-    'signal_half_life_hours': 6    # Signal decay rate
-}
-```
-
-**Validation**: Test with `python test_btc_correlation.py`
-
-### 2. ML Model (XGBoost) - 30% weight
-
-**Role**: Confirmation filter, not primary signal generator
-
-- **Features**: 50+ technical indicators and market regime signals
-- **Target**: Future price direction (buy/sell/hold)
-- **Retraining**: Automatic every 168 hours (1 week)
-- **Validation**: Time-series split for realistic backtesting
-- **Usage**: Filters out trades against market regime
-
-### 3. Rule-Based Strategies - 25% weight combined
-
-- **Trend Following** (12.5%): EMA crossovers with ADX confirmation
-- **Mean Reversion** (12.5%): RSI + Bollinger Bands in ranging markets
-
-### 4. Darknet Adoption Strategy - 5% weight (Optional)
-
-**Tracks cryptocurrency usage on darknet marketplaces as privacy demand indicator**
-
-**How it Works**:
-- Connects to Tor network
-- Scrapes public statistics from marketplace stats pages
-- Extracts BTC vs XMR payment method percentages
-- Aggregates across top 10 marketplaces
-- Generates signals based on adoption rates
-
-**Signal Logic**:
-- XMR adoption >60%: Bullish (high privacy demand)
-- XMR adoption <35%: Bearish (BTC dominance)
-- Increasing XMR trend: Additional bullish signal
-
-**Key Parameters**:
-```python
-{
-    'bullish_threshold': 60,        # XMR% for bullish signal
-    'bearish_threshold': 35,        # XMR% for bearish signal
-    'min_confidence': 0.5,          # Minimum data quality
-    'update_interval_hours': 24     # Daily updates
-}
-```
-
-**Setup** (Optional):
-1. Install Tor: `brew install tor` (macOS) or `apt install tor` (Linux)
-2. Start Tor: `tor`
-3. Configure marketplace .onion addresses in `src/darknet/marketplace_scraper.py`
-4. Enable in `.env`: `DARKNET_MONITORING_ENABLED=true`
-
-**Legal Note**: Scrapes only publicly available statistics pages for market research, similar to analyzing exchange volumes. No personal data or transaction details collected.
-
-**Documentation**: See [DARKNET_QUICK_START.md](docs/DARKNET_QUICK_START.md)
-
-### 5. News Sentiment Strategy - 10% weight
-
-**Real-time news monitoring and LLM-based classification**
-
-**How it Works**:
-- Monitors Twitter API for crypto, privacy, economic, and instability news
-- Classifies each news item across 4 dimensions using LLMs:
-  1. **Economic Relevance** (0-100): Central bank policy, inflation, recession signals
-  2. **Crypto Relevance** (0-100): Bitcoin, Monero, blockchain news
-  3. **Privacy Relevance** (0-100): Surveillance, encryption, data protection
-  4. **Instability Relevance** (0-100): Wars, sanctions, regulatory crackdowns
-- Generates sentiment score (-100 to +100) for privacy coins
-- Privacy and instability news get boosted multipliers (especially bullish for XMR)
-
-**Key Parameters**:
-```python
-{
-    'min_sentiment_threshold': 30,        # Minimum sentiment to act
-    'significant_news_min': 2,            # Minimum significant news items
-    'privacy_boost_multiplier': 1.5,      # Boost for privacy news
-    'instability_boost_multiplier': 1.2,  # Boost for instability
-    'max_signal_age_hours': 4             # News freshness requirement
-}
-```
-
-**Setup**:
-
-1. **Get Twitter API Access**:
-   - Apply at [Twitter Developer Portal](https://developer.twitter.com/)
-   - Create an app and get Bearer Token (v2 API)
-   - Add to `.env`: `TWITTER_BEARER_TOKEN=your_token`
-
-2. **Get LLM API Access**:
-   - **Option A - OpenAI**: Get API key from [OpenAI Platform](https://platform.openai.com/)
-   - **Option B - Anthropic**: Get API key from [Anthropic Console](https://console.anthropic.com/)
-   - Add to `.env`: `OPENAI_API_KEY=your_key` or `ANTHROPIC_API_KEY=your_key`
-
-3. **Configure** (in `.env`):
-```env
-NEWS_LLM_PROVIDER=openai              # or 'anthropic'
-NEWS_CHECK_INTERVAL_MINUTES=30        # Check every 30 minutes
-NEWS_AGGREGATION_WINDOW_HOURS=2       # Aggregate news over 2 hours
-NEWS_STRATEGY_WEIGHT=0.10             # 10% weight
-```
-
-**What Gets Monitored**:
-- Cryptocurrency mentions (Bitcoin, Monero, altcoins)
-- Privacy and surveillance topics
-- Economic news (Fed, inflation, recession)
-- Global instability (wars, sanctions, regulations)
-- Exchange delistings and regulatory actions
-
-**Example Signals**:
-- 🟢 **Bullish**: Data breach headlines, increased surveillance, privacy legislation
-- 🔴 **Bearish**: Exchange delistings, regulatory crackdowns, crypto bans
-- ⚪ **Neutral**: General crypto price commentary, unrelated news
-
-**Monitoring**: News sentiment appears in:
-- Grafana dashboard metrics
-- Telegram alerts for significant news
-- Database (`news_events`, `news_sentiment` tables)
-- Trading logs with sentiment scores
-
-## 🔒 Security
-
-### API Key Safety
-- Store keys in `.env` file (never commit)
-- Use read-only keys when possible
-- Rotate keys regularly
-
-### Risk Controls
-- Maximum position size: 2% of capital
-- Maximum portfolio exposure: 30%
-- Daily loss limit: 5%
-- Consecutive loss limit: 5 trades
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-1. **TA-Lib Installation Error**
-```bash
-# Ubuntu/Debian
-sudo apt-get install ta-lib
-
-# macOS
-brew install ta-lib
-
-# Or use Docker (recommended)
-docker-compose up --build
-```
-
-2. **Exchange Connection Issues**
-- Verify API keys in `.env`
-- Check API key permissions
-- Ensure IP whitelisting (if required)
-
-3. **Database Connection Error**
-```bash
-# Reset database
-docker-compose down -v
-docker-compose up -d postgres
-```
-
-4. **Telegram Alerts Not Working**
-- Verify bot token and chat ID
-- Test connection: `await telegram.test_connection()`
-
-### Logs
-```bash
-# View bot logs
-docker-compose logs -f trading-bot
-
-# View all service logs
-docker-compose logs
-
-# Application logs
-tail -f logs/trading_bot_*.log
-```
-
-## 📈 Performance Tuning
-
-### Strategy Optimization
-1. **Adjust Strategy Weights**: Based on historical performance
-2. **ML Model Parameters**: Tune XGBoost hyperparameters
-3. **Risk Parameters**: Adjust position sizing and stop losses
-4. **Timeframes**: Experiment with different signal timeframes
-
-### System Optimization
-1. **Resource Monitoring**: Check CPU/memory usage in Grafana
-2. **Database Performance**: Monitor query times
-3. **API Rate Limits**: Adjust request frequencies
-4. **Alert Frequency**: Reduce unnecessary notifications
-
-## 📊 News Monitoring Details
-
-### Database Schema
-
-The news monitoring system uses two main tables:
-
-**NewsEvent Table**: Stores individual classified news items
-- Source information (Twitter, Reddit, etc.)
-- LLM classification scores (economic, crypto, privacy, instability)
-- Sentiment (bullish/bearish/neutral) and confidence
-- Engagement metrics and key entities
-
-**NewsSentiment Table**: Aggregated sentiment over time windows
-- Overall sentiment score (-100 to +100)
-- Category breakdowns and counts
-- Generated trading signals
-- Actionability flags
-
-### API Costs
-
-**Twitter API**: Free tier supports:
-- 500,000 tweets/month
-- Tweet cap: ~200/request
-- Adequate for monitoring key topics every 30 minutes
-
-**LLM APIs** (approximate costs per 1000 news classifications):
-- OpenAI GPT-4o-mini: ~$0.30
-- Anthropic Claude 3 Haiku: ~$0.50
-- Budget: ~$10-20/month for continuous monitoring
-
-### Customization
-
-**Add Custom News Sources**:
-```python
-# In src/news/news_aggregator.py
-# Add custom queries to TwitterClient
-client.queries['your_topic'] = 'your AND search OR terms -is:retweet'
-```
-
-**Adjust Classification Prompt**:
-```python
-# In src/news/news_classifier.py
-# Modify _build_classification_prompt() to emphasize different factors
-```
-
-**Change Strategy Weights**:
-```python
-# In main.py or config
-config.news_strategy_weight = 0.15  # Increase to 15% weight
-```
-
-## 📝 Development
-
-### Adding New Strategies
-```python
-# 1. Create strategy class
-class MyStrategy(BaseStrategy):
-    def generate_signal(self, df):
-        # Your logic here
-        pass
-
-# 2. Add to signal aggregator
-my_strategy = MyStrategy()
-bot.signal_aggregator.strategies.append(my_strategy)
-```
-
-### Custom Metrics
-```python
-# Add custom Prometheus metric
-from src.monitoring.prometheus_metrics import TradingBotMetrics
-
-# In your code
-metrics.custom_metric.inc()
-```
-
-### Testing
-```bash
-# Install test dependencies
-pip install pytest pytest-asyncio
-
-# Run tests
-pytest tests/
-```
-
-
-## ⚠️ Disclaimer
-
-**This software is for educational and research purposes only. Trading cryptocurrencies involves substantial risk of loss. Never trade with money you cannot afford to lose. Past performance does not guarantee future results.**
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+**⚠️ Start with paper trading!** See [Getting Started Guide](docs/01-GETTING-STARTED.md)
 
 ---
 
-### 🎯 Monero-Specific Notes
+## 📚 Documentation
 
-This bot is specifically optimized for Monero (XMR) trading considering:
-- **Lower Liquidity**: Careful position sizing and limit orders
-- **Exchange Availability**: Focus on Kraken and Binance
-- **Privacy Coin Regulations**: Built-in compliance monitoring
-- **BTC Correlation**: **PRIMARY EDGE** - Exploits 6-24h lag in XMR following BTC
-- **Volatility Patterns**: Adjusted risk management parameters
+**Read in this order:**
 
-### Why BTC-XMR Correlation Works
+1. **[Getting Started](docs/01-GETTING-STARTED.md)** - Quick setup checklist
+2. **[Setup Guide](docs/02-SETUP.md)** - Detailed API instructions  
+3. **[Architecture](docs/03-ARCHITECTURE.md)** - How the bot works
+4. **[Status](docs/06-STATUS.md)** - Current state and requirements
 
-From `CLAUDE.md` analysis:
-1. **Lower Liquidity**: XMR has ~$50-150M daily volume vs BTC's $20-40B → slower price discovery
-2. **Retail-Heavy**: Less institutional presence = delayed reaction to BTC moves
-3. **Fragmented Liquidity**: Limited exchange availability slows information propagation
-4. **High Correlation**: XMR follows BTC trends but with measurable lag
+---
 
-**Historical Performance**: The correlation strategy typically shows 60-75% directional accuracy with an 8-16 hour lag window.
+## 🎯 Core Strategy
 
-Built according to the comprehensive architecture outlined in CLAUDE.md for maximum edge extraction in privacy coin markets.
+**BTC-XMR Correlation Lag (40% weight - Primary Edge)**
+
+Monero typically lags Bitcoin price movements by 6-24 hours due to:
+- Lower liquidity ($50-150M vs BTC's $20-40B daily volume)
+- Retail-heavy market structure
+- Fragmented exchange availability
+
+When BTC moves >3%, the bot anticipates XMR will follow with a measurable delay.
+
+**Status**: Unproven. Requires real-world validation through paper trading.
+
+---
+
+## 📊 Strategy Breakdown
+
+### ✅ Core Strategies (REQUIRED - Free)
+- **BTC Correlation** (40%) - Exploits BTC-XMR lag
+- **Trend Following** (12.5%) - EMA crossovers + ADX
+- **Mean Reversion** (12.5%) - RSI + Bollinger Bands
+
+### ⚙️ ML Strategies (OPTIONAL - Free but slow first run)
+- **XGBoost** (25%) - Regime detection and signal filtering
+- Auto-trains on startup (1-2 hours)
+
+### 💰 News Strategies (OPTIONAL - $110/month)
+- **News Sentiment** (10%) - Twitter + LLM classification
+- Requires Twitter API ($100/mo) + OpenAI ($10-20/mo)
+
+### 🧪 Experimental (OPTIONAL - Unreliable)
+- **Darknet Adoption** (5%) - Cryptocurrency usage on darknet markets
+- Requires Tor + manual .onion address maintenance
+- **Not recommended** unless experienced
+
+---
+
+## 🛠️ Requirements
+
+### Minimum (Core Strategies Only)
+- Python 3.9+
+- Docker + Docker Compose (or PostgreSQL, Redis, InfluxDB)
+- Exchange API (Binance OR Kraken)
+- Telegram bot (for alerts)
+
+### Optional
+- Twitter API + OpenAI/Anthropic (for news monitoring)
+- Tor (for darknet monitoring - not recommended)
+
+---
+
+## 💰 Cost Breakdown
+
+### Free Tier (Minimum Setup)
+- **Server**: $0 (local) or $5-20/mo (VPS)
+- **Trading**: $0 (paper trading)
+- **Total**: $5-20/month
+
+### Full Setup (All Features)
+- **Twitter API**: $100/month
+- **OpenAI API**: $10-20/month  
+- **Server**: $5-20/month
+- **Total**: $115-140/month
+
+**Recommendation**: Start with free tier, validate BTC correlation works, then add features.
+
+---
+
+## 📁 Project Structure
+
+```
+privacy_coin_swing_trading/
+├── docs/                          # All documentation
+│   ├── 01-GETTING-STARTED.md
+│   ├── 02-SETUP.md
+│   └── 03-ARCHITECTURE.md
+│
+├── src/
+│   ├── core/                      # REQUIRED: Data, features, exchange
+│   ├── strategies/
+│   │   ├── core/                  # REQUIRED: BTC correlation, trend, mean reversion
+│   │   ├── ml/                    # OPTIONAL: XGBoost models
+│   │   ├── news/                  # OPTIONAL: Twitter + LLM ($$$)
+│   │   └── experimental/darknet/  # OPTIONAL: Darknet monitoring (unreliable)
+│   ├── risk/                      # REQUIRED: Position sizing, stops
+│   ├── execution/                 # REQUIRED: Order management
+│   ├── monitoring/                # REQUIRED: Metrics, alerts
+│   └── database/                  # REQUIRED: Data storage
+│
+├── scripts/                       # Utility scripts
+│   ├── setup_database.py
+│   └── test_connection.py
+│
+├── tests/                         # Test suite
+├── monitoring/                    # Grafana + Prometheus
+└── .env.example                   # Configuration template
+```
+
+---
+
+## ⚡ Quick Commands
+
+```bash
+# Start bot (paper trading)
+docker-compose up -d
+
+# View logs
+docker-compose logs -f trading-bot
+
+# Stop bot
+docker-compose down
+
+# Setup database
+python scripts/setup_database.py
+
+# Test connections
+python scripts/test_connection.py
+```
+
+---
+
+## 📈 Features
+
+### Risk Management
+- Multiple position sizing methods (Kelly, fixed fractional, volatility-adjusted)
+- ATR-based stop losses
+- Support/resistance-based targets
+- Portfolio exposure limits (max 30%)
+- Daily loss limits (5%)
+
+### Monitoring
+- **Grafana Dashboards**: Real-time metrics at http://localhost:3000
+- **Prometheus**: Metrics endpoint at http://localhost:9090
+- **Telegram Alerts**: Trades, signals, errors, daily summaries
+
+### Data Sources
+- **Exchanges**: Binance, Kraken (via CCXT)
+- **Optional**: Twitter (news), Tor (darknet)
+
+---
+
+## ⚠️ Warnings
+
+### 🔴 This Bot Has NOT Been Validated
+- **Zero real-world trades** have been executed
+- **BTC correlation edge is unproven** - it's a hypothesis
+- **Backtest uses random data** - not real historical data
+- **No test coverage** - bugs likely exist
+
+### 🔴 Financial Risk
+- Cryptocurrency trading involves substantial risk
+- Past performance does not guarantee future results
+- **Never trade with money you cannot afford to lose**
+- **Always start with paper trading for 2-4 weeks minimum**
+
+### 🔴 Technical Risk
+- Code is untested in production
+- Exchange APIs can fail
+- Network issues can cause missed trades
+- Database failures possible
+
+---
+
+## 🧪 Recommended Path
+
+### Week 1: Setup & Validation
+1. Get minimum API keys (exchange + Telegram)
+2. Create `.env` file
+3. Start in paper trading mode
+4. Verify connections and signal generation
+
+### Weeks 2-4: Paper Trading
+1. Monitor for BTC correlation signals
+2. Track hypothetical P&L in Grafana
+3. Analyze win rate and strategy performance
+4. **Do NOT use real money yet**
+
+### Month 2: Decision Point
+**IF paper trading shows consistent profit:**
+- Start with $500 live capital
+- Monitor closely
+- Scale gradually if successful
+
+**IF paper trading loses money:**
+- Analyze why (check logs, correlation data)
+- Tune parameters or abandon
+- **Do NOT risk real money**
+
+---
+
+## 🔧 Configuration
+
+**Minimum `.env` required:**
+
+```bash
+# Exchange (pick ONE)
+BINANCE_API_KEY=your_key
+BINANCE_SECRET=your_secret
+
+# Telegram (for alerts)
+TELEGRAM_BOT_TOKEN=your_token
+TELEGRAM_CHAT_ID=your_id
+
+# Disable expensive features
+NEWS_MONITORING_ENABLED=false
+DARKNET_MONITORING_ENABLED=false
+```
+
+See [Setup Guide](docs/02-SETUP.md) for detailed API instructions.
+
+---
+
+## 📖 Learn More
+
+- **[Getting Started](docs/01-GETTING-STARTED.md)** - Setup checklist
+- **[Setup Guide](docs/02-SETUP.md)** - API key acquisition
+- **[Architecture](docs/03-ARCHITECTURE.md)** - Technical deep-dive
+- **[Status Report](docs/06-STATUS.md)** - Current state, costs, risks
+
+---
+
+## 🆘 Support
+
+- **Issues**: GitHub Issues tab
+- **Logs**: `docker-compose logs trading-bot`
+- **Documentation**: See `docs/` directory
+
+---
+
+## 📄 License
+
+MIT License - See LICENSE file
+
+---
+
+## ⚖️ Disclaimer
+
+**This software is for educational and research purposes only.**
+
+- Not financial advice
+- No guarantee of profits
+- Substantial risk of loss
+- Trade at your own risk
+- Developers assume no liability for financial losses
+
+**Start with paper trading. Never invest more than you can afford to lose.**
+
+---
+
+## 🚀 Status
+
+- **Architecture**: ✅ Complete
+- **Core Strategies**: ✅ Implemented
+- **ML Models**: ⚠️ Untrained (auto-trains on startup)
+- **News Monitoring**: ⚠️ Requires paid APIs
+- **Darknet**: ⚠️ Experimental (fake addresses)
+- **Validation**: ❌ Not yet tested with real trades
+- **Production Ready**: ❌ Paper trading recommended
+
+**Bottom Line**: Well-architected but unproven. Worth testing with paper trading, but treat as experimental.
+
+---
+
+**Ready to start?** → [Getting Started Guide](docs/01-GETTING-STARTED.md)

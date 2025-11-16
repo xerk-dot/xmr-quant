@@ -13,8 +13,8 @@ import asyncio
 import logging
 from datetime import datetime, timedelta
 
-from main import MoneroTradingBot
-from config import config
+from src.core.bot import MoneroTradingBot
+from config.config import config
 
 
 def setup_logging():
