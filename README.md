@@ -1,18 +1,22 @@
-# Monero Trading Bot with Darknet Market Sentiment Analysis
+# XMR Quant - Monero Algorithmic Trading System
 
-An algorithmic trading system for Monero (XMR) that combines traditional technical analysis with novel darknet marketplace sentiment monitoring. The core thesis: Monero adoption on darknet markets is a leading indicator of genuine privacy demand and price action.
+An indie quant project to (hopefully!) find alpha on Monero (XMR).
+
+## Why XMR?
+
+THESIS: An ensemble XGBoost classification system that ingests over 30 technical indicators simultaneously—price dynamics, momentum, moving averages, volatility, volume patterns, and cross-asset correlations with Bitcoin... and learns which combinations actually predict Monero price movements. The model outputs buy/sell/hold signals with confidence scores, turning what's normally a subjective synthesis of conflicting indicators into a quantifiable prediction. Machine learning excels at exactly the kind of multidimensional pattern recognition that makes manual indicator analysis mentally taxing.
+
+The core insight is simple: Monero correlates with Bitcoin but moves independently enough that direct application of BTC indicators misses crucial signals. The XGBoost model discovers which combinations matter across different market cycle phases (accumulation, markup, distribution, and markdown). The system retrains weekly because markets evolve, filters signals by confidence threshold, and provides feature importance rankings so you know what's actually driving decisions. The backtest results show this approach consistently identifies market inflection points better than watching indicators individually.
 
 ## Overview
 
-This is a multi-strategy ensemble trading bot designed to exploit several inefficiencies in the Monero market:
+This is a multi-strategy ensemble trading bot designed for Monero (XMR) markets:
 
-1. **Darknet Market Sentiment** - Primary signal source. Monitors cryptocurrency adoption trends across darknet marketplaces via Tor. Rising XMR acceptance rates and transaction volume on DNMs indicates increasing privacy demand before it reflects in spot price.
+1. **Market Cycle XGBoost** - Machine learning strategy using 30+ market cycle indicators (adapted from Bitcoin cycle indicators) to predict XMR price movements. Includes Pi Cycle, Mayer Multiple, Rainbow Chart, momentum indicators, volatility metrics, and cross-asset correlation with BTC. Uses XGBoost to learn complex patterns across all indicators simultaneously. See `docs/MARKET-CYCLE-XGBOOST.md` for details.
 
-2. **BTC-XMR Correlation Lag** - Secondary signal. Hypothesis: XMR may lag BTC price movements due to lower liquidity and fragmented exchange availability. The strategy tests for correlation with various lag periods to identify if a predictable relationship exists.
+2. **BTC-XMR Correlation** - Tests for correlation between Bitcoin and Monero price movements with dynamic lag detection. Hypothesis: XMR may lag BTC movements due to lower liquidity and fragmented exchange availability. Exploits correlation inefficiencies for entry signals.
 
-3. **News Sentiment Analysis** - LLM-based classification of crypto news from Twitter and GitHub activity, focusing on privacy/regulation narratives that affect XMR price.
-
-4. **Traditional Technical Analysis** - Trend following (EMA), mean reversion (RSI/BB), and XGBoost-based market regime detection.
+3. **Development Activity Analysis** - Monitors GitHub repositories (Monero, Zcash, other privacy coins) tracking PRs, commits, and contributor activity to assess feature readiness and crisis management patterns that may signal upcoming price catalysts. Uses sentiment analysis on development activity as a leading indicator.
 
 ## Repository Structure
 
@@ -25,24 +29,18 @@ src/
 │   └── feature_engineering.py
 │
 ├── strategies/
-│   ├── experimental/darknet/
-│   │   ├── strategy.py            # Darknet sentiment trading strategy
-│   │   ├── marketplace_scraper.py # Tor-based .onion scraper
-│   │   └── tor_client.py          # Tor SOCKS5 client
+│   ├── ml/
+│   │   ├── market_cycle_xgboost.py # 30+ market cycle indicators w/ XGBoost
+│   │   ├── models.py               # Volatility predictor, signal filter models
+│   │   └── manager.py              # ML model lifecycle management
 │   │
 │   ├── news/
-│   │   ├── strategy.py            # News sentiment strategy
-│   │   ├── news_aggregator.py     # Twitter & GitHub API client
-│   │   └── news_classifier.py     # OpenAI/Anthropic LLM classifier
+│   │   ├── strategy.py            # Development monitoring strategy
+│   │   ├── news_aggregator.py     # GitHub API client (PRs, commits, activity)
+│   │   └── news_classifier.py     # Optional: LLM pattern analyzer
 │   │
 │   ├── core/
-│   │   ├── btc_correlation.py     # BTC-XMR lag exploitation
-│   │   └── trend_following.py     # EMA/RSI/BB strategies
-│   │
-│   ├── ml/
-│   │   ├── xgboost_strategy.py    # Market regime detection
-│   │   ├── models.py              # Volatility, signal filter, exit models
-│   │   └── manager.py             # ML model lifecycle
+│   │   └── btc_correlation.py     # BTC-XMR lag correlation exploitation
 │   │
 │   ├── aggregator.py        # Weighted voting across strategies
 │   └── base.py              # Base strategy interface
@@ -68,63 +66,18 @@ src/
 ### Main Trading Loop
 The bot runs on a configurable interval (default: every 2 hours):
 
-1. Fetch OHLCV data from exchanges (Binance, Kraken)
-2. Calculate technical indicators (50+ features via `pandas_ta`)
+1. Fetch OHLCV data from exchanges (Binance, Kraken) for both XMR and BTC
+2. Calculate 30+ market cycle indicators and engineer features
 3. Run all enabled strategies in parallel:
-   - Darknet strategy checks marketplace scrape data from last 24h
-   - BTC correlation checks BTC price changes across multiple time windows and tests for lag correlation
-   - News strategy aggregates LLM-classified tweets and GitHub activity from last 4h
-   - ML models predict market regime and filter signals
-   - Technical strategies evaluate current price vs EMAs/RSI/BB
+   - **Market Cycle XGBoost**: Analyzes all 30+ indicators simultaneously using ML to predict BUY/SELL/HOLD with confidence scores. Includes Pi Cycle, Mayer Multiple, RSI variants, volatility metrics, volume analysis, and cross-asset correlation with BTC.
+   - **BTC Correlation**: Checks BTC price changes across multiple time windows and tests for lag correlation to identify when XMR follows BTC movements with exploitable delays.
+   - **Development Monitoring**: Analyzes GitHub activity (PRs, commits, contributor patterns) across privacy coin repositories to identify feature readiness and crisis response signals that may precede price movements.
 4. Aggregate signals via weighted voting (configurable weights)
-5. Apply risk management (position sizing, exposure checks)
+5. Apply risk management (position sizing, exposure checks, stop losses)
 6. Execute orders if signal strength > threshold
 7. Update Prometheus metrics, send Telegram alerts
 
-### Darknet Monitoring Strategy
-
-**Implementation**: `src/strategies/experimental/darknet/`
-
-The darknet strategy operates independently on a longer interval (every 12-24 hours):
-
-1. Connect to Tor network via SOCKS5 proxy
-2. Scrape marketplace statistics from `.onion` addresses:
-   - Number of vendors accepting XMR vs BTC
-   - Proportion of listings with XMR as payment option
-   - Total transaction volume indicators (when available)
-3. Calculate adoption metrics:
-   - XMR acceptance rate across markets
-   - Week-over-week change in XMR listings
-   - Vendor migration patterns (BTC → XMR)
-4. Generate trading signals:
-   - `BUY` if XMR adoption increasing significantly (>10% WoW)
-   - `SELL` if XMR adoption declining (<-5% WoW)
-   - Signal strength proportional to adoption velocity
-
-**Current State**:
-- Code is functional but uses placeholder `.onion` addresses
-- Requires manual sourcing of real darknet marketplace addresses
-- Scraping logic works but needs marketplace-specific selectors
-- See `src/strategies/experimental/darknet/marketplace_scraper.py` for implementation details
-
-**Legal Notice**: This feature is for research purposes only. Accessing darknet marketplaces may be illegal in your jurisdiction. User assumes all legal risk.
-
-## Strategy Weights
-
-Default configuration (adjustable in config):
-
-```python
-STRATEGY_WEIGHTS = {
-    'darknet_adoption': 0.30,      # Primary alpha source
-    'btc_correlation': 0.25,       # Secondary alpha
-    'news_sentiment': 0.20,        # Narrative detection
-    'xgboost_ml': 0.15,           # Regime filtering
-    'trend_following': 0.05,       # Traditional TA
-    'mean_reversion': 0.05         # Traditional TA
-}
-```
-
-Signals are aggregated via weighted sum. Trade execution requires aggregate signal strength > 0.6.
+Strategy signals are combined through an adaptive weighting system that adjusts based on recent performance and market conditions.
 
 ## Requirements
 
@@ -136,19 +89,14 @@ Signals are aggregated via weighted sum. Trade execution requires aggregate sign
 - Exchange API keys (Binance OR Kraken)
 - Telegram bot token (alerts)
 
-### Optional (Darknet Monitoring)
-- Tor installed and running (`brew install tor` on macOS)
-- Working `.onion` addresses for active darknet markets
-- Basic understanding of Tor network operation
+### Optional (Development Monitoring)
+- GitHub API access (free with rate limits, or GitHub token for higher limits)
+- Optional: OpenAI API key ($10-20/month) OR Anthropic API key for LLM-based pattern analysis
 
-### Optional (News Monitoring)
-- Twitter API v2 access ($100/month for Basic tier) OR GitHub API access (free with rate limits)
-- OpenAI API key ($10-20/month) OR Anthropic API key
-
-### Optional (ML Models)
-- 16GB+ RAM for XGBoost training
-- 1-2 hours for initial model training
-- Historical data (downloads automatically on first run)
+### For ML Strategy (Market Cycle XGBoost)
+- 8GB+ RAM for XGBoost training (16GB+ recommended)
+- 5-10 minutes for initial model training
+- 2 years of historical XMR + BTC data (downloads automatically on first run)
 
 ## Installation
 
@@ -195,14 +143,8 @@ TELEGRAM_BOT_TOKEN=xxx
 TELEGRAM_CHAT_ID=xxx
 
 # Strategy Enablement
-DARKNET_MONITORING_ENABLED=true   # Enable darknet sentiment
-NEWS_MONITORING_ENABLED=false     # Requires Twitter/GitHub API
+DEV_MONITORING_ENABLED=false      # Requires GitHub API token
 ML_ENABLED=true                   # Enable XGBoost models
-
-# Darknet Configuration
-TOR_SOCKS_HOST=localhost
-TOR_SOCKS_PORT=9050
-DARKNET_SCRAPE_INTERVAL=43200     # 12 hours
 
 # Risk Management
 MAX_POSITION_SIZE=0.30            # Max 30% of portfolio per position
@@ -246,9 +188,6 @@ python run_bot.py --mode backtest
 # Run all tests
 pytest
 
-# Test specific strategy
-pytest tests/test_darknet_monitoring.py
-
 # Test with coverage
 pytest --cov=src --cov-report=html
 ```
@@ -271,20 +210,22 @@ ruff format src/
 
 ## Current Limitations
 
-1. **Darknet Strategy**:
-   - Uses placeholder `.onion` addresses (you must source real ones)
-   - Scraping selectors need marketplace-specific tuning
-   - No automated address discovery (must be updated manually)
-   - Legal/ethical considerations for accessing DNMs
+1. **Market Cycle XGBoost**:
+   - Not pre-trained (trains on first run, takes 5-10 minutes)
+   - Requires 2 years of historical data for best accuracy (downloads automatically)
+   - Needs both XMR and BTC data for cross-asset analysis
+   - Weekly retraining recommended to adapt to market changes
 
-2. **ML Models**:
-   - Not pre-trained (trains on first run, takes 1-2 hours)
-   - Requires significant historical data (downloads automatically)
-   - High memory usage during training (16GB+ recommended)
+2. **Development Monitoring Strategy**:
+   - Tracks PRs, commits, and contributor activity across privacy coin repositories
+   - Signals feature readiness (major releases) and crisis response patterns
+   - GitHub API is free with rate limits (or use token for higher limits)
+   - Optional LLM analysis for pattern classification ($10-50/month)
 
-3. **News Strategy**:
-   - Supports Twitter API ($100/month) and/or GitHub API (free with rate limits)
-   - LLM API costs vary with usage ($10-50/month typical)
+3. **BTC Correlation Strategy**:
+   - Works best during periods of high BTC-XMR correlation
+   - May generate false signals during market decoupling events
+   - Lag detection requires sufficient price movement history
 
 ## Documentation
 
@@ -292,13 +233,13 @@ ruff format src/
 - `docs/02-SETUP.md` - Detailed API configuration
 - `docs/03-ARCHITECTURE.md` - System architecture and data flows
 - `docs/04-BTC-CORRELATION-STRATEGY.md` - Deep-dive on BTC-XMR correlation
-- `docs/DARKNET_MONITORING_GUIDE.md` - Darknet strategy implementation
-- `docs/NEWS_MONITORING_GUIDE.md` - News sentiment setup
+- `docs/MARKET-CYCLE-XGBOOST.md` - **NEW!** Market cycle indicators with XGBoost ML
+- `docs/NEWS_MONITORING_GUIDE.md` - Development monitoring setup (GitHub activity tracking)
 - `docs/06-STATUS.md` - Current project status and roadmap
 
 ## Disclaimer
 
-This software is provided for educational and research purposes only. Cryptocurrency trading involves substantial risk of loss. Accessing darknet marketplaces may be illegal in your jurisdiction. The authors assume no liability for financial losses or legal consequences resulting from use of this software.
+This software is provided for educational and research purposes only. Cryptocurrency trading involves substantial risk of loss. The authors assume no liability for financial losses or legal consequences resulting from use of this software.
 
 **Do not trade with money you cannot afford to lose. Always start with paper trading.**
 
