@@ -1,1 +1,0 @@
-# Monero Privacy Coin Swing Trading Bot

@@ -1,61 +1,26 @@
 # Core dependencies
-pandas==2.1.4
-numpy==1.26.2
-python-dotenv==1.0.0
+requests>=2.31.0
+python-dotenv>=1.0.0
+pyyaml>=6.0.1
 
-# Exchange connectivity
-ccxt==4.2.25
+# Data processing
+pandas>=2.1.0
+numpy>=1.24.0
 
-# Technical analysis
-ta-lib==0.4.28
-pandas-ta==0.3.14b
-
-# Database
-psycopg2-binary==2.9.9
-sqlalchemy==2.0.25
-redis==5.0.1
-influxdb-client==1.40.0
-
-# Machine Learning
-scikit-learn==1.4.0
-xgboost==2.0.3
-lightgbm==4.3.0
-
-# Async and networking
-aiohttp==3.9.1
-websockets==12.0
-asyncio==3.4.3
-
-# Monitoring and logging
-prometheus-client==0.19.0
-python-telegram-bot==21.0.1
-
-# Data validation
-pydantic==2.5.3
-pydantic-settings==2.1.0
-
-# Tor/Darknet monitoring
-requests[socks]==2.31.0
-PySocks==1.7.1
-beautifulsoup4==4.12.2
-aiohttp-socks==0.8.4
-stem==1.8.2
-
-# Testing
-pytest==7.4.4
-pytest-asyncio==0.23.3
-pytest-mock==3.12.0
+# Exchange API
+krakenex>=2.2.0
 
 # Telegram bot
-python-telegram-bot==20.7
+python-telegram-bot>=20.7
 
-# News monitoring
-openai==1.12.0
-anthropic==0.18.1
+# Utilities
+python-dateutil>=2.8.2
+pytz>=2023.3
 
-# Development
-pre-commit==3.6.0
-ruff==0.1.11
-mypy==1.8.0
-black==23.12.1
-flake8==7.0.0
+# Development tools
+pre-commit>=3.6.0
+ruff>=0.1.9
+mypy>=1.7.1
+types-requests>=2.31.0
+types-python-dateutil>=2.8.19
+types-PyYAML>=6.0.12

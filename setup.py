@@ -1,36 +1,29 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
+
+with open("README.md", encoding="utf-8") as fh:
+    long_description = fh.read()
+
+with open("requirements.txt", encoding="utf-8") as fh:
+    requirements = [line.strip() for line in fh if line.strip() and not line.startswith("#")]
 
 setup(
-    name="monero-trading-bot",
-    version="1.0.0",
-    description="Monero Privacy Coin Swing Trading Bot",
-    author="Trading Bot System",
+    name="xmr-quant",
+    version="0.1.0",
+    author="Indie Quant",
+    description="Quantitative trading system for Monero (XMR) price prediction",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     packages=find_packages(),
-    install_requires=[
-        "pandas>=2.1.4",
-        "numpy>=1.26.2",
-        "ccxt>=4.2.25",
-        "ta-lib>=0.4.28",
-        "pandas-ta>=0.3.14b",
-        "psycopg2-binary>=2.9.9",
-        "sqlalchemy>=2.0.25",
-        "redis>=5.0.1",
-        "influxdb-client>=1.40.0",
-        "scikit-learn>=1.4.0",
-        "xgboost>=2.0.3",
-        "lightgbm>=4.3.0",
-        "aiohttp>=3.9.1",
-        "websockets>=12.0",
-        "prometheus-client>=0.19.0",
-        "python-telegram-bot>=21.0.1",
-        "pydantic>=2.5.3",
-        "pydantic-settings>=2.1.0",
-        "python-dotenv>=1.0.0"
+    classifiers=[
+        "Development Status :: 3 - Alpha",
+        "Intended Audience :: Developers",
+        "Topic :: Office/Business :: Financial :: Investment",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
     ],
-    python_requires=">=3.10",
-    entry_points={
-        "console_scripts": [
-            "monero-bot=main:main",
-        ],
-    },
+    python_requires=">=3.8",
+    install_requires=requirements,
 )

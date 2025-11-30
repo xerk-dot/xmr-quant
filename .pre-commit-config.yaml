@@ -1,22 +1,29 @@
+# Pre-commit hooks for code quality
+# Install: pip install pre-commit && pre-commit install
+
 repos:
+  # Ruff - Fast Python linter and formatter
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.11
+    rev: v0.1.9
     hooks:
+      # Run the linter
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
+      # Run the formatter
       - id: ruff-format
 
+  # Mypy - Static type checker
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.8.0
+    rev: v1.7.1
     hooks:
       - id: mypy
         additional_dependencies:
           - types-requests
-          - types-redis
-          - pydantic
+          - types-python-dateutil
+          - types-PyYAML
         args: [--ignore-missing-imports, --no-strict-optional]
-        exclude: ^(tests/|docs/|scripts/)
 
+  # Additional useful hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
@@ -24,7 +31,6 @@ repos:
       - id: end-of-file-fixer
       - id: check-yaml
       - id: check-added-large-files
-        args: ['--maxkb=1000']
+        args: [--maxkb=1000]
       - id: check-merge-conflict
       - id: detect-private-key
-
