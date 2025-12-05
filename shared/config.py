@@ -15,9 +15,8 @@ load_dotenv()
 class Config:
     """Centralized configuration management."""
 
-    # CoinMarketCap API
-    COINMARKETCAP_API_KEY: str = os.getenv("COINMARKETCAP_API_KEY", "")
-    COINMARKETCAP_BASE_URL: str = "https://pro-api.coinmarketcap.com/v1"
+    # CoinMarketCap API (Removed)
+    # COINMARKETCAP_API_KEY and COINMARKETCAP_BASE_URL are no longer used
 
     # Kraken API
     KRAKEN_API_KEY: str = os.getenv("KRAKEN_API_KEY", "")
@@ -43,6 +42,10 @@ class Config:
     DATA_DIR: str = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
     LOGS_DIR: str = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
 
+    # Database
+    DATABASE_PATH: str = os.path.join(DATA_DIR, "market_data.duckdb")
+    DATA_RETENTION_DAYS: int = int(os.getenv("DATA_RETENTION_DAYS", "730"))  # 2 years default
+
     @classmethod
     def validate(cls) -> Tuple[bool, List[str]]:
         """
@@ -52,9 +55,6 @@ class Config:
             Tuple of (is_valid, list of missing keys)
         """
         missing = []
-
-        if not cls.COINMARKETCAP_API_KEY:
-            missing.append("COINMARKETCAP_API_KEY")
 
         if not cls.KRAKEN_API_KEY:
             missing.append("KRAKEN_API_KEY")

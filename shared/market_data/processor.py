@@ -17,7 +17,7 @@ class DataProcessor:
         Convert quotes dictionary to pandas DataFrame.
 
         Args:
-            quotes: Dictionary of quotes from CoinMarketCap
+            quotes: Dictionary of quotes from CCXT
 
         Returns:
             DataFrame with quote data

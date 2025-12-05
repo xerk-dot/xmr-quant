@@ -1,16 +1,16 @@
 # XMR Quant Trading System
 
-A quantitative trading system for predicting and trading Monero (XMR) price movements. Built with a modular architecture to support multiple trading strategies and comprehensive risk management.
+An indie quant project to (hopefully?) find alpha on the Monero (XMR) market.
 
 ## 🎯 Overview
 
-This repository provides a professional-grade framework for algorithmic trading of Monero (XMR) with:
+This repository provides a framework for algorithmic trading of Monero (XMR) with:
 
 - **Multi-strategy support**: Modular architecture for implementing and testing different trading strategies
 - **Risk management**: Position sizing, stop-loss/take-profit, and drawdown monitoring
 - **Real-time monitoring**: Comprehensive logging, metrics collection, and alerting
-- **Market data integration**: CoinMarketCap API for multi-asset price data (BTC, XMR, ZEC, LTC)
-- **Exchange integration**: Kraken API for order execution and portfolio management
+- **Market data integration**: CCXT (Kraken) for multi-asset price data (BTC, XMR, ZEC, LTC)
+- **Exchange integration**: CCXT for order execution and portfolio management
 - **Notifications**: Telegram bot for real-time trade alerts and system status
 
 ## 📁 Project Structure
@@ -37,8 +37,7 @@ xmr-quant/
 
 - Python 3.8+
 - API keys for:
-  - [CoinMarketCap](https://coinmarketcap.com/api/) (market data)
-  - [Kraken](https://www.kraken.com/features/api) (exchange)
+  - [Kraken](https://www.kraken.com/features/api) (exchange & market data)
   - [Telegram Bot](https://core.telegram.org/bots#creating-a-new-bot) (notifications)
 
 ### Installation
@@ -72,8 +71,7 @@ xmr-quant/
 Edit `.env` with your credentials:
 
 ```bash
-# CoinMarketCap API
-COINMARKETCAP_API_KEY=your_api_key_here
+
 
 # Kraken API
 KRAKEN_API_KEY=your_api_key_here
@@ -93,13 +91,13 @@ RISK_PER_TRADE_PERCENT=2.0
 
 ### Market Data (`shared/market_data/`)
 
-- **CoinMarketCapClient**: Fetch real-time and historical price data for BTC, XMR, ZEC, LTC
+- **CCXTClient**: Fetch real-time and historical price data for BTC, XMR, ZEC, LTC via CCXT (defaults to Kraken)
 - **DataProcessor**: Technical indicators (RSI, Bollinger Bands), moving averages, volatility calculations
 
 ```python
-from shared.market_data import CoinMarketCapClient, DataProcessor
+from shared.market_data import CCXTClient, DataProcessor
 
-client = CoinMarketCapClient()
+client = CCXTClient()
 quotes = client.get_latest_quotes(['XMR'])
 print(f"XMR Price: ${quotes['XMR']['price']:.2f}")
 ```
@@ -211,7 +209,7 @@ pytest tests/test_strategy.py
 ## 📈 Usage Example
 
 ```python
-from shared.market_data import CoinMarketCapClient
+from shared.market_data import CCXTClient
 from shared.exchange import KrakenClient
 from shared.risk import RiskManager
 from shared.monitoring import setup_logger
@@ -219,7 +217,7 @@ from shared.notification import TelegramNotifier
 
 # Initialize components
 logger = setup_logger('trading_bot')
-cmc = CoinMarketCapClient()
+cmc = CCXTClient()
 kraken = KrakenClient()
 risk_mgr = RiskManager()
 notifier = TelegramNotifier()

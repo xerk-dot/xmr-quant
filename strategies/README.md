@@ -60,11 +60,11 @@ Strategies will be implemented here in future iterations.
 
 ```python
 from strategies.example_strategy import ExampleStrategy
-from shared.market_data import CoinMarketCapClient
+from shared.market_data import CCXTClient
 from shared.risk import RiskManager
 
 # Initialize components
-market_data_client = CoinMarketCapClient()
+market_data_client = CCXTClient()
 risk_manager = RiskManager()
 strategy = ExampleStrategy(config)
 

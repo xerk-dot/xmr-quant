@@ -9,6 +9,7 @@ numpy>=1.24.0
 
 # Exchange API
 krakenex>=2.2.0
+ccxt>=4.0.0
 
 # Telegram bot
 python-telegram-bot>=20.7
